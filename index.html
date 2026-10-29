@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>购物车管理系统</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #6a8dff 0%, #9b59b6 100%);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 32px 16px;
+    color: #2d3142;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 760px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(30, 20, 80, .28);
+    overflow: hidden;
+  }
+
+  /* ---------- 头部 ---------- */
+  header { padding: 26px 28px 14px; text-align: center; }
+  header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+  header .sub { margin: 6px 0 0; color: #8b8fa3; font-size: 14px; }
+
+  /* ---------- 菜单 ---------- */
+  .menu {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    padding: 0 20px 18px;
+    border-bottom: 1px solid #eef0f6;
+  }
+  .menu-item {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px;
+    border: 1px solid #e4e7f0;
+    border-radius: 12px;
+    background: #fafbff;
+    color: #5a6079;
+    font-size: 13px;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .menu-item .num {
+    width: 22px; height: 22px; line-height: 22px;
+    border-radius: 50%;
+    background: #e8ecff; color: #6a8dff;
+    font-weight: 600; font-size: 12px; text-align: center;
+  }
+  .menu-item:hover { border-color: #b9c6ff; transform: translateY(-2px); }
+  .menu-item.active {
+    background: linear-gradient(135deg, #6a8dff, #8e6cf0);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(106, 141, 255, .35);
+  }
+  .menu-item.active .num { background: rgba(255,255,255,.25); color: #fff; }
+
+  /* ---------- 面板 ---------- */
+  main { padding: 22px 28px 8px; }
+  .panel { display: none; animation: fade .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .panel h2 {
+    margin: 0 0 16px;
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 4px solid #6a8dff;
+    line-height: 1.1;
+  }
+
+  /* ---------- 表单 ---------- */
+  .field { flex: 1; margin-bottom: 14px; }
+  .field label { display: block; margin-bottom: 6px; font-size: 13px; color: #6b7185; }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid #dfe3ee;
+    border-radius: 10px;
+    background: #fafbff;
+    outline: none;
+    transition: .2s;
+  }
+  .field input:focus {
+    border-color: #6a8dff;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(106, 141, 255, .15);
+  }
+  .field-row { display: flex; gap: 14px; }
+
+  button.primary, button.danger {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #fff;
+    cursor: pointer;
+    transition: .2s;
+  }
+  button.primary { background: linear-gradient(135deg, #6a8dff, #8e6cf0); }
+  button.danger  { background: linear-gradient(135deg, #ff6b6b, #f0506e); }
+  button.primary:hover, button.danger:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+
+  /* ---------- 已有商品快捷标签 ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #d8e0ff;
+    background: #f2f5ff;
+    color: #5a6079;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .chip:hover { background: #6a8dff; color: #fff; border-color: #6a8dff; }
+  .chip-empty { font-size: 12.5px; color: #a0a5b8; }
+
+  /* ---------- 查询结果 ---------- */
+  .cart-list { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
+  .cart-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f7f9ff;
+    border: 1px solid #e8ecf9;
+    font-size: 14px;
+  }
+  .cart-sub { color: #6a8dff; font-weight: 600; white-space: nowrap; }
+  .empty { color: #a0a5b8; text-align: center; padding: 24px 0; margin: 0; }
+  .summary {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #eef3ff;
+    color: #4a5170;
+    font-size: 14px;
+  }
+  .summary b { color: #6a8dff; }
+
+  /* ---------- 退出面板 ---------- */
+  .bye {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #6a8dff;
+    padding: 30px 0;
+  }
+  #panel-exit button { max-width: 220px; margin: 0 auto; display: block; }
+
+  /* ---------- 数据预览（字典结构） ---------- */
+  .preview { padding: 16px 28px 24px; border-top: 1px dashed #e8ecf9; margin-top: 16px; }
+  .preview-title { font-size: 13px; color: #8b8fa3; margin-bottom: 8px; }
+  .preview pre {
+    margin: 0;
+    padding: 14px;
+    background: #1e2233;
+    color: #b9ffb0;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    max-height: 180px;
+    overflow: auto;
+  }
+
+  /* ---------- Toast 提示 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 36px;
+    transform: translate(-50%, 20px);
+    padding: 12px 22px;
+    border-radius: 30px;
+    color: #fff;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: .25s;
+    z-index: 99;
+    box-shadow: 0 10px 24px rgba(0,0,0,.2);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.success { background: linear-gradient(135deg, #35c759, #2aa84a); }
+  .toast.error   { background: linear-gradient(135deg, #ff6b6b, #e0455f); }
+  .toast.info    { background: linear-gradient(135deg, #6a8dff, #8e6cf0); }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 560px) {
+    .menu { grid-template-columns: repeat(2, 1fr); }
+    .field-row { flex-direction: column; gap: 0; }
+    header, main, .preview { padding-left: 18px; padding-right: 18px; }
+    .cart-item { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>🛒 购物车管理系统</h1>
+    <p class="sub">欢迎使用购物车管理系统~</p>
+  </header>
+
+  <!-- 菜单：对应原程序的 1-5 指令 -->
+  <nav class="menu">
+    <button class="menu-item active" data-action="add"><span class="num">1</span>添加购物车</button>
+    <button class="menu-item" data-action="edit"><span class="num">2</span>修改购物车</button>
+    <button class="menu-item" data-action="remove"><span class="num">3</span>删除购物车</button>
+    <button class="menu-item" data-action="query"><span class="num">4</span>查询购物车</button>
+    <button class="menu-item" data-action="exit"><span class="num">5</span>退出购物车</button>
+  </nav>
+
+  <main>
+    <!-- 1. 添加购物车 -->
+    <section class="panel active" id="panel-add">
+      <h2>添加购物车</h2>
+      <div class="field">
+        <label for="add-name">商品名称</label>
+        <input id="add-name" type="text" placeholder="请输入商品的名称">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="add-price">商品价格（元）</label>
+          <input id="add-price" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label for="add-qty">商品数量</label>
+          <input id="add-qty" type="number" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <button class="primary" id="btn-add">确认添加</button>
+    </section>
+
+    <!-- 2. 修改购物车 -->
+    <section class="panel" id="panel-edit">
+      <h2>修改购物车</h2>
+      <div class="field">
+        <label for="edit-name">要修改的商品名称</label>
+        <input id="edit-name" type="text" placeholder="请输入要修改商品的名称">
+      </div>
+      <div class="chips" id="edit-chips"></div>
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-price">商品最新价格（元）</label>
+          <input id="edit-price" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label for="edit-qty">商品最新数量</label>
+          <input id="edit-qty" type="number" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <button class="primary" id="btn-edit">确认修改</button>
+    </section>
+
+    <!-- 3. 删除购物车 -->
+    <section class="panel" id="panel-remove">
+      <h2>删除购物车</h2>
+      <div class="field">
+        <label for="remove-name">要删除的商品名称</label>
+        <input id="remove-name" type="text" placeholder="请输入要删除的商品名称">
+      </div>
+      <div class="chips" id="remove-chips"></div>
+      <button class="danger" id="btn-remove">确认删除</button>
+    </section>
+
+    <!-- 4. 查询购物车 -->
+    <section class="panel" id="panel-query">
+      <h2>查询购物车</h2>
+      <div class="cart-list" id="cart-list"></div>
+      <div class="summary" id="cart-summary"></div>
+    </section>
+
+    <!-- 5. 退出购物车 -->
+    <section class="panel" id="panel-exit">
+      <h2>退出购物车</h2>
+      <p class="bye">bye 👋 感谢使用购物车管理系统</p>
+      <button class="primary" id="btn-reenter">重新进入系统</button>
+    </section>
+  </main>
+
+  <!-- 字典数据实时预览，方便对照 Python 里的 print(dict) -->
+  <footer class="preview">
+    <div class="preview-title">当前购物车数据（字典结构）</div>
+    <pre id="preview-json">{}</pre>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+ *  数据层：用对象模拟 Python 的 dict
+ *  cart = { 商品名称: { price: 价格, quantity: 数量 } }
+ * ========================================================= */
+const cart = {};
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------------- 面板切换 ---------------- */
+const menuItems = document.querySelectorAll('.menu-item');
+const panels = document.querySelectorAll('.panel');
+
+function switchPanel(action) {
+  menuItems.forEach(btn => btn.classList.toggle('active', btn.dataset.action === action));
+  panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + action));
+  if (action === 'query') renderCart();
+}
+
+menuItems.forEach(btn =>
+  btn.addEventListener('click', () => switchPanel(btn.dataset.action))
+);
+
+/* 键盘按 1~5 也能切换菜单（输入框内不响应） */
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const map = { '1': 'add', '2': 'edit', '3': 'remove', '4': 'query', '5': 'exit' };
+  if (map[e.key]) switchPanel(map[e.key]);
+});
+
+/* ---------------- 轻提示 ---------------- */
+let toastTimer = null;
+function toast(msg, type = 'info') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast ' + type; }, 2000);
+}
+
+/* ---------------- 工具函数 ---------------- */
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+/* 刷新所有视图（查询列表 + 快捷标签 + 字典预览） */
+function refresh() {
+  renderCart();
+  renderChips();
+  $('preview-json').textContent = JSON.stringify(cart, null, 2);
+}
+
+/* 渲染查询面板：格式与需求一致 */
+function renderCart() {
+  const names = Object.keys(cart);
+  const list = $('cart-list');
+  const summary = $('cart-summary');
+
+  if (names.length === 0) {
+    list.innerHTML = '<p class="empty">购物车是空的，快去添加商品吧~</p>';
+    summary.textContent = '';
+    return;
+  }
+
+  let totalAmount = 0;
+  let totalQty = 0;
+
+  list.innerHTML = names.map(name => {
+    const item = cart[name];
+    totalAmount += item.price * item.quantity;
+    totalQty += item.quantity;
+    return `
+      <div class="cart-item">
+        <div>商品名称：${escapeHtml(name)}，商品价格：${item.price.toFixed(2)}，商品数量：${item.quantity}</div>
+        <div class="cart-sub">小计 ¥${(item.price * item.quantity).toFixed(2)}</div>
+      </div>`;
+  }).join('');
+
+  summary.innerHTML =
+    `共 <b>${names.length}</b> 种商品，总数量 <b>${totalQty}</b>，合计金额 <b>¥${totalAmount.toFixed(2)}</b>`;
+}
+
+/* 渲染"已有商品"快捷标签，点一下就自动填入输入框 */
+function renderChips() {
+  const names = Object.keys(cart);
+  ['edit-chips', 'remove-chips'].forEach(id => {
+    const box = $(id);
+    box.innerHTML = '';
+    if (names.length === 0) {
+      const span = document.createElement('span');
+      span.className = 'chip-empty';
+      span.textContent = '购物车暂无商品';
+      box.appendChild(span);
+      return;
+    }
+    names.forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.textContent = n;
+      btn.dataset.name = n;
+      box.appendChild(btn);
+    });
+  });
+}
+
+/* 点击快捷标签填入名称 */
+document.querySelectorAll('.chips').forEach(box => {
+  box.addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const targetId = box.id === 'edit-chips' ? 'edit-name' : 'remove-name';
+    $(targetId).value = chip.dataset.name;
+  });
+});
+
+/* ---------------- 1. 添加购物车 ---------------- */
+$('btn-add').addEventListener('click', () => {
+  const name  = $('add-name').value.trim();
+  const price = parseFloat($('add-price').value);
+  const qty   = parseInt($('add-qty').value, 10);
+
+  if (!name)                     return toast('请输入商品的名称', 'error');
+  if (isNaN(price) || price < 0) return toast('请输入正确的商品价格', 'error');
+  if (isNaN(qty) || qty <= 0)    return toast('请输入正确的商品数量', 'error');
+  if (name in cart)              return toast('商品已存在，请重新选择', 'error');
+
+  cart[name] = { price: price, quantity: qty };
+  toast('商品添加成功', 'success');
+
+  $('add-name').value = '';
+  $('add-price').value = '';
+  $('add-qty').value = '';
+  refresh();
+});
+
+/* ---------------- 2. 修改购物车 ---------------- */
+$('btn-edit').addEventListener('click', () => {
+  const name = $('edit-name').value.trim();
+
+  if (!name)          return toast('请输入要修改商品的名称', 'error');
+  if (!(name in cart)) return toast('商品不存在，请重新选择', 'error');
+
+  const price = parseFloat($('edit-price').value);
+  const qty   = parseInt($('edit-qty').value, 10);
+
+  if (isNaN(price) || price < 0) return toast('请输入正确的商品价格', 'error');
+  if (isNaN(qty) || qty <= 0)    return toast('请输入正确的商品数量', 'error');
+
+  cart[name] = { price: price, quantity: qty };
+  toast('商品修改成功', 'success');
+
+  $('edit-name').value = '';
+  $('edit-price').value = '';
+  $('edit-qty').value = '';
+  refresh();
+});
+
+/* ---------------- 3. 删除购物车 ---------------- */
+$('btn-remove').addEventListener('click', () => {
+  const name = $('remove-name').value.trim();
+
+  if (!name)           return toast('请输入要删除的商品名称', 'error');
+  if (!(name in cart)) return toast('商品不存在', 'error');
+
+  delete cart[name];
+  toast('商品删除成功', 'success');
+
+  $('remove-name').value = '';
+  refresh();
+});
+
+/* ---------------- 5. 退出 / 重新进入 ---------------- */
+$('btn-reenter').addEventListener('click', () => {
+  switchPanel('add');
+  toast('已重新进入购物车管理系统', 'success');
+});
+
+/* ---------------- 初始化 ---------------- */
+refresh();
+</script>
+</body>
+</html>
